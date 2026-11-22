@@ -1,0 +1,3912 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0c0e">
+    <meta name="description" content="Extensya is a local-first browser-extension malware analyzer for Linux. Open a CRX, XPI, ZIP, folder or store URL and inspect permissions, dangerous code, hidden payloads, source-to-sink attack chains, 22 threat signatures and a risk score. Nothing is installed or executed.">
+    <meta property="og:title" content="Extensya - Browser Extension Malware Analyzer">
+    <meta property="og:description" content="Read what a browser extension is really capable of before you trust it. Static analysis, attack chains, decoded payloads, threat signatures, MITRE ATT&amp;CK and IOCs. Local-first and read-only.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="screenshots/logo.png">
+    <meta name="twitter:card" content="summary">
+    <title>Extensya - Browser Extension Malware Analyzer</title>
+    <link rel="icon" href="screenshots/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="screenshots/logo.png">
+    <style>
+
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    src: url("fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2-variations");
+    font-weight: 100 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Cloister Black";
+    src: url("fonts/cloister-black.woff") format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    /* Palette mirrored from the black-theme PDF export (extensya/pdf.py) */
+    --bg: #0b0c0e;
+    --bg-deep: #040506;
+    --window: #0d0f12;
+    --panel: #0e1013;
+    --panel-2: #131619;
+    --panel-3: #171b20;
+    --border: #21252b;
+    --border-strong: #2e343d;
+    --text: #f0f2f7;
+    --body: #c2c9d4;
+    --body-strong: #d7dde7;
+    --muted: #8f99a8;
+    --dim: #6f7887;
+    --faint: #4b525c;
+    --accent: #f5f6f9;
+    --accent-hover: #ffffff;
+    --accent-rgb: 245, 246, 249;
+    --accent-soft: rgba(245, 246, 249, 0.08);
+    --accent-contrast: #0b0c0e;
+    --violet: #b08cff;
+    --violet-rgb: 176, 140, 255;
+    --green: #4ade80;
+    --green-rgb: 74, 222, 128;
+    --danger: #ff5c5c;
+    --danger-rgb: 255, 92, 92;
+    --high: #ffa657;
+    --high-rgb: 255, 166, 87;
+    --medium: #d9d9d9;
+    --font-sans: "Inter", "Cantarell", "Noto Sans", "DejaVu Sans", sans-serif;
+    --font-mono: "JetBrains Mono", "Ubuntu Mono", "DejaVu Sans Mono", monospace;
+    --font-brand: "Cloister Black", "UnifrakturMaguntia", "Old English Text MT", serif;
+    --radius: 14px;
+    --shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    scroll-padding-top: 84px;
+    font-size: 16px;
+    height: 100%;
+}
+
+body {
+    min-height: 100%;
+    overflow-x: hidden;
+    background-color: var(--bg);
+    background-image: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+::selection {
+    background: rgba(var(--accent-rgb), 0.28);
+    color: #ffffff;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #2b323a;
+    border: 2px solid var(--bg);
+    border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #3a424d;
+}
+
+a {
+    color: var(--body-strong);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--text);
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+code {
+    padding: 0.08em 0.38em;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    color: var(--text);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+}
+
+img {
+    max-width: 100%;
+}
+
+.container {
+    width: min(1180px, calc(100% - 48px));
+    margin: 0 auto;
+}
+
+.skip-link {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 200;
+    padding: 9px 14px;
+    border: 1px solid var(--accent);
+    border-radius: 7px;
+    background: var(--panel);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    transform: translateY(-160%);
+    transition: transform 0.15s ease;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.btn svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    color: var(--accent-contrast);
+    transform: translateY(-1px);
+}
+
+.btn-ghost {
+    border-color: var(--border-strong);
+    background: rgba(255, 255, 255, 0.025);
+    color: var(--text);
+}
+
+.btn-ghost:hover {
+    border-color: rgba(var(--accent-rgb), 0.45);
+    background: rgba(var(--accent-rgb), 0.07);
+    color: var(--text);
+}
+
+.btn-sm {
+    min-height: 34px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+}
+
+.btn-sm svg {
+    width: 14px;
+    height: 14px;
+}
+
+
+.nav {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11, 12, 14, 0.82);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.nav.is-scrolled {
+    background: rgba(11, 12, 14, 0.94);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 64px;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.brand:hover {
+    color: var(--text);
+}
+
+.brand img {
+    width: 32px;
+    height: 37px;
+    object-fit: contain;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
+}
+
+.brand-name {
+    font-family: var(--font-brand);
+    font-size: 1.2rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+}
+
+.brand-sub {
+    margin-top: 3px;
+    color: var(--dim);
+    font-family: var(--font-sans);
+    font-size: 0.52rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    flex: none;
+    flex-wrap: nowrap;
+    gap: clamp(12px, 1.5vw, 22px);
+}
+
+.nav-links > a:not(.btn) {
+    position: relative;
+    flex: none;
+    padding: 6px 0;
+    color: var(--muted);
+    font-size: 0.79rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.nav-links > a:not(.btn):hover,
+.nav-links > a:not(.btn).is-active {
+    color: var(--text);
+}
+
+.nav-links > a:not(.btn).is-active::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: -3px;
+    left: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+}
+
+.nav-dl {
+    margin-left: 2px;
+}
+
+.nav-toggle {
+    display: none;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.nav-toggle span {
+    display: block;
+    height: 1.5px;
+    margin: 4px 0;
+    border-radius: 2px;
+    background: var(--text);
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(5.5px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-5.5px) rotate(-45deg);
+}
+
+
+.hero {
+    position: relative;
+    padding-top: 76px;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+    align-items: center;
+    gap: 56px;
+    padding-bottom: 64px;
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.035em;
+}
+
+.eyebrow .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.8);
+}
+
+.hero h1 {
+    margin: 22px 0;
+    font-family: var(--font-brand);
+    font-size: clamp(3.6rem, 7.8vw, 6.4rem);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: 0.01em;
+}
+
+.hero h1 .accent {
+    color: var(--accent);
+    text-shadow: 0 0 44px rgba(var(--accent-rgb), 0.24);
+}
+
+.hero-lead {
+    max-width: 58ch;
+    color: var(--body);
+    font-size: 1.02rem;
+    line-height: 1.72;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+}
+
+.hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 22px;
+    list-style: none;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+}
+
+.hero-meta li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.hero-meta li::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--border-strong);
+}
+
+.hero-visual {
+    position: relative;
+    min-width: 0;
+}
+
+.hero-glow {
+    position: absolute;
+    inset: -18% -12%;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(255, 255, 255, 0.045), transparent 70%);
+    filter: blur(18px);
+    pointer-events: none;
+}
+
+
+.term {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.term-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    min-height: 38px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+}
+
+.term-mark {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--accent);
+}
+
+.term-title {
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.term-copy {
+    margin-left: auto;
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.term-copy:hover {
+    border-color: rgba(var(--accent-rgb), 0.4);
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--accent);
+}
+
+.term-body {
+    padding: 18px 18px 20px;
+    overflow-x: auto;
+    color: #c2c9d4;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.85;
+}
+
+.term-line {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.term-line .prompt,
+.term-pane .prompt {
+    margin-right: 6px;
+    color: var(--accent);
+    user-select: none;
+}
+
+.term-line.comment,
+.term-pane .comment {
+    color: #6b7482;
+}
+
+.term-line.ok,
+.term-pane .ok {
+    color: var(--accent);
+}
+
+.term-line.dim {
+    color: var(--dim);
+}
+
+.term-gap {
+    height: 8px;
+}
+
+.cursor {
+    display: inline-block;
+    width: 7px;
+    height: 12px;
+    margin-left: 4px;
+    background: var(--accent);
+    vertical-align: -1px;
+    animation: cursor-blink 1.1s steps(1) infinite;
+}
+
+@keyframes cursor-blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.float-chip {
+    position: absolute;
+    padding: 6px 10px;
+    border: 1px solid rgba(var(--accent-rgb), 0.26);
+    border-radius: 999px;
+    background: rgba(11, 12, 14, 0.92);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.03em;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+.float-chip-1 {
+    top: -14px;
+    right: 18px;
+}
+
+.float-chip-2 {
+    bottom: -14px;
+    left: -12px;
+    border-color: rgba(var(--violet-rgb), 0.3);
+    color: var(--violet);
+}
+
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.stat {
+    padding: 22px 26px;
+    border-left: 1px solid var(--border);
+}
+
+.stat:first-child {
+    padding-left: 0;
+    border-left: 0;
+}
+
+.stat-num {
+    display: block;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 1.55rem;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+}
+
+.stat-label {
+    display: block;
+    margin-top: 3px;
+    color: var(--dim);
+    font-size: 0.7rem;
+    letter-spacing: 0.01em;
+}
+
+
+.section {
+    position: relative;
+    padding: 96px 0;
+}
+
+.section-alt {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.012) 18%, rgba(255, 255, 255, 0.012) 82%, transparent);
+}
+
+.section-workbench {
+    background: transparent;
+}
+
+.section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 36px;
+    margin-bottom: 40px;
+}
+
+.kicker {
+    margin-bottom: 10px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+h2 {
+    max-width: 22ch;
+    font-size: clamp(1.9rem, 3.4vw, 2.9rem);
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+}
+
+.section-note {
+    max-width: 38ch;
+    color: var(--dim);
+    font-size: 0.84rem;
+    line-height: 1.6;
+    text-align: right;
+}
+
+.lead {
+    color: var(--body-strong);
+    font-size: 1.02rem;
+    line-height: 1.72;
+}
+
+
+.overview-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    align-items: start;
+    gap: 64px;
+}
+
+.overview-copy p + p {
+    margin-top: 16px;
+}
+
+.overview-copy .lead {
+    margin-top: 18px;
+}
+
+.pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 26px;
+}
+
+.pill-row span {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+}
+
+.spec-card {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+}
+
+.spec-head {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.spec-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.spec-list > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.spec-list dt {
+    color: var(--dim);
+    font-size: 0.74rem;
+}
+
+.spec-list dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.74rem;
+    text-align: right;
+}
+
+.spec-list code {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+}
+
+.spec-note {
+    margin-top: 14px;
+    color: var(--dim);
+    font-size: 0.68rem;
+    line-height: 1.55;
+}
+
+
+.mock-wrap {
+    position: relative;
+}
+
+.mock-app {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.mock-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 38px;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+}
+
+.mock-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.mock-mark {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--accent);
+}
+
+.mock-brand-name {
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.mock-brand-sub {
+    padding-left: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.mock-top-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    letter-spacing: 0.08em;
+}
+
+.live-pill i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.9);
+    animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.mock-proxy {
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+}
+
+.mock-proxy code {
+    padding: 2px 6px;
+    border-color: var(--border);
+    background: #07080a;
+    font-size: 0.54rem;
+}
+
+.mock-body {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr);
+    min-height: 360px;
+}
+
+.mock-side {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 10px;
+    border-right: 1px solid var(--border);
+    background: #0a0c10;
+}
+
+.mock-side-item {
+    padding: 7px 9px;
+    border-radius: 6px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+}
+
+.mock-side-item.active {
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent);
+}
+
+.mock-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mock-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.mock-filter {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: #5d6673;
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mock-chip {
+    flex: none;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: var(--panel-3);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+}
+
+.mock-table {
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+}
+
+.mock-row {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1.1fr) minmax(0, 1.3fr) 46px 48px;
+    gap: 8px;
+    align-items: center;
+    padding: 7px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+    color: var(--muted);
+}
+
+.mock-row > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mock-row-head {
+    background: #0a0c10;
+    color: var(--dim);
+    font-size: 0.48rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mock-row.is-active {
+    background: rgba(var(--accent-rgb), 0.06);
+    color: var(--text);
+}
+
+.m {
+    font-weight: 600;
+}
+
+.m.get {
+    color: var(--accent);
+}
+
+.m.post {
+    color: var(--violet);
+}
+
+.m.put {
+    color: var(--green);
+}
+
+.s {
+    justify-self: start;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.48rem;
+}
+
+.s.ok {
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent);
+}
+
+.s.warn {
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--green);
+}
+
+.s.err {
+    background: rgba(var(--danger-rgb), 0.12);
+    color: var(--danger);
+}
+
+.mock-inspector {
+    margin: 10px 12px 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #07080a;
+}
+
+.mock-inspector-head {
+    display: flex;
+    gap: 14px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+}
+
+.mock-inspector-head .active {
+    color: var(--accent);
+}
+
+.mock-inspector pre {
+    margin: 0;
+    padding: 10px 12px;
+    overflow: auto;
+    color: #a9b3c1;
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    line-height: 1.7;
+    white-space: pre;
+}
+
+.mock-foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 9px 16px;
+    border-top: 1px solid var(--border);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
+}
+
+.feature-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 22px;
+}
+
+.feature-chips span {
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+}
+
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.feature-card {
+    position: relative;
+    padding: 22px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.feature-card:hover {
+    border-color: rgba(var(--accent-rgb), 0.28);
+    background:
+        linear-gradient(160deg, rgba(var(--accent-rgb), 0.05), transparent 55%),
+        var(--panel);
+    transform: translateY(-2px);
+}
+
+.feature-num {
+    display: inline-block;
+    margin-bottom: 12px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+}
+
+.feature-card h3 {
+    margin-bottom: 6px;
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+}
+
+.feature-card p {
+    color: var(--body);
+    font-size: 0.82rem;
+    line-height: 1.68;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 14px;
+}
+
+.tags span {
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+}
+
+
+.scanner-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.scan-card {
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+}
+
+.scan-card header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.scan-num {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 1.9rem;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.scan-card h3 {
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-cloud span {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+}
+
+.preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+}
+
+.preset-row > span:first-child {
+    margin-right: 4px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.preset {
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+}
+
+.scan-note {
+    margin-top: 18px;
+    color: var(--dim);
+    font-size: 0.76rem;
+    line-height: 1.6;
+}
+
+
+.shot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.shot-card {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #0d0f12;
+    box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.shot-card:hover {
+    border-color: rgba(var(--accent-rgb), 0.35);
+    transform: translateY(-2px);
+}
+
+.shot-card-featured {
+    grid-column: 1 / -1;
+}
+
+.shot-link {
+    display: block;
+    background: #07080a;
+}
+
+.shot-frame {
+    display: block;
+    aspect-ratio: 1440 / 1000;
+    background: #07080a;
+}
+
+.shot-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+}
+
+.shot-link:hover img {
+    opacity: 0.92;
+}
+
+.shot-card figcaption {
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+}
+
+.shot-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.shot-card h3 {
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+    font-weight: 650;
+}
+
+.shot-card p {
+    color: var(--dim);
+    font-size: 0.76rem;
+    line-height: 1.55;
+}
+
+
+.release-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+    gap: 1px;
+    margin-bottom: 40px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--border);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.release-main {
+    padding: 28px;
+    background: var(--panel);
+}
+
+.release-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.release-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.8);
+}
+
+.release-main h3 {
+    margin-top: 8px;
+    font-size: 1.55rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+}
+
+.release-main h3 span {
+    color: var(--dim);
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.release-copy {
+    max-width: 64ch;
+    margin-top: 10px;
+    color: var(--body);
+    font-size: 0.82rem;
+    line-height: 1.65;
+}
+
+.release-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.release-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0;
+    background: var(--border);
+}
+
+.release-meta > div {
+    padding: 16px 18px;
+    background: var(--panel-2);
+}
+
+.release-meta dt {
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.release-meta dd {
+    margin-top: 4px;
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.release-hash-row {
+    grid-column: 1 / -1;
+}
+
+.release-hash-row dd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.release-hash-row code {
+    padding: 3px 6px;
+    font-size: 0.6rem;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.release-hash-copy {
+    flex: none;
+    padding: 4px 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.release-hash-copy:hover {
+    border-color: rgba(var(--accent-rgb), 0.5);
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--accent);
+}
+
+.install-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+    gap: 40px;
+}
+
+.steps {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    list-style: none;
+}
+
+.steps li {
+    display: flex;
+    gap: 14px;
+}
+
+.step-num {
+    flex: none;
+    padding-top: 3px;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
+}
+
+.steps h3 {
+    margin-bottom: 3px;
+    font-size: 0.92rem;
+    font-weight: 650;
+}
+
+.steps p {
+    color: var(--body);
+    font-size: 0.8rem;
+    line-height: 1.62;
+}
+
+.dep-cmds {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.dep-cmds p {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+}
+
+.dep-cmds span {
+    flex: 0 0 132px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+}
+
+.dep-cmds code {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+
+.install-note {
+    margin-top: 26px;
+    padding: 14px 16px;
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    border-radius: 10px;
+    background: rgba(var(--accent-rgb), 0.05);
+    color: var(--body);
+    font-size: 0.76rem;
+    line-height: 1.62;
+}
+
+.install-note strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.term-install .term-body {
+    padding: 0;
+}
+
+.term-tabs {
+    display: flex;
+    gap: 14px;
+    margin-left: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.term-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.term-tab {
+    flex: none;
+    padding: 7px 0;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.term-tab:hover {
+    color: var(--text);
+}
+
+.term-tab.is-active {
+    border-bottom-color: var(--accent);
+    color: var(--text);
+}
+
+.term-pane {
+    display: none;
+    margin: 0;
+    padding: 18px;
+    overflow-x: auto;
+    color: #c2c9d4;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1.85;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.term-pane.is-active {
+    display: block;
+}
+
+.req-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1px;
+    margin-top: 40px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--border);
+}
+
+.req-grid > div {
+    padding: 14px 16px;
+    background: var(--panel);
+}
+
+.req-grid span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.req-grid strong {
+    color: var(--text);
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
+.quick-head {
+    margin: 52px 0 18px;
+}
+
+.quick-head .kicker {
+    margin-bottom: 6px;
+}
+
+.quick-head h3 {
+    font-size: 1.15rem;
+    font-weight: 650;
+}
+
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.quick-card {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+}
+
+.quick-card h3 {
+    margin: 6px 0 5px;
+    font-size: 0.88rem;
+    font-weight: 650;
+}
+
+.quick-card p {
+    color: var(--body);
+    font-size: 0.76rem;
+    line-height: 1.6;
+}
+
+
+.privacy-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 56px;
+}
+
+.privacy-copy .lead {
+    margin-top: 18px;
+}
+
+.privacy-copy p + p {
+    margin-top: 16px;
+}
+
+.privacy-copy > p:not(.kicker):not(.lead):not(.guardrails) {
+    color: var(--body);
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+
+.guardrails {
+    padding: 13px 15px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--dim);
+    font-size: 0.76rem;
+    line-height: 1.6;
+}
+
+.guardrails strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.privacy-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.privacy-card {
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+}
+
+.privacy-card h3 {
+    margin-bottom: 4px;
+    font-size: 0.86rem;
+    font-weight: 650;
+}
+
+.privacy-card p {
+    color: var(--body);
+    font-size: 0.76rem;
+    line-height: 1.6;
+}
+
+.callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 32px;
+    padding: 16px 18px;
+    border: 1px solid rgba(var(--danger-rgb), 0.22);
+    border-radius: 12px;
+    background: rgba(var(--danger-rgb), 0.05);
+    color: var(--body);
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.callout svg {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    color: var(--danger);
+}
+
+.callout strong {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+
+.cta {
+    padding: 40px 0 96px;
+}
+
+.cta-inner {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 36px;
+    overflow: hidden;
+    border: 1px solid rgba(var(--accent-rgb), 0.22);
+    border-radius: 18px;
+    background: var(--panel);
+}
+
+.cta-inner img {
+    flex: none;
+    width: 72px;
+    height: 82px;
+    object-fit: contain;
+}
+
+.cta-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.cta-copy .kicker {
+    margin-bottom: 6px;
+}
+
+.cta-copy h2 {
+    max-width: none;
+    font-size: 1.8rem;
+    letter-spacing: -0.035em;
+}
+
+.cta-copy p:not(.kicker) {
+    margin-top: 5px;
+    color: var(--body);
+    font-size: 0.86rem;
+    line-height: 1.6;
+}
+
+.cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cta-note {
+    margin-top: 14px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    text-align: center;
+}
+
+.footer {
+    padding: 48px 0 28px;
+    border-top: 1px solid var(--border);
+    background: #060709;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
+}
+
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.footer-brand p {
+    max-width: 36ch;
+    color: var(--dim);
+    font-size: 0.76rem;
+    line-height: 1.65;
+}
+
+.footer-warn {
+    color: var(--muted) !important;
+}
+
+.footer-col h4 {
+    margin-bottom: 12px;
+    color: var(--text);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.footer-col a {
+    display: block;
+    padding: 3px 0;
+    color: var(--dim);
+    font-size: 0.76rem;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.footer-col a:hover {
+    color: var(--accent);
+}
+
+.footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+}
+
+
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    z-index: 120;
+    padding: 9px 16px;
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 999px;
+    background: #0e1013;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 16px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+
+.js .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.js .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+
+
+@media (max-width: 1100px) {
+    .hero-grid {
+        gap: 40px;
+    }
+
+    .overview-grid {
+        gap: 44px;
+    }
+
+    .privacy-grid {
+        gap: 40px;
+    }
+}
+
+@media (max-width: 960px) {
+    .hero {
+        padding-top: 58px;
+    }
+
+    .hero-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 44px;
+        padding-bottom: 52px;
+    }
+
+    .hero-visual {
+        width: 100%;
+        max-width: 680px;
+    }
+
+    .release-card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .overview-grid,
+    .install-grid,
+    .privacy-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+    }
+
+    .spec-card {
+        max-width: 620px;
+    }
+
+    .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .section-note {
+        max-width: none;
+        text-align: left;
+    }
+
+    .req-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 32px;
+    }
+
+    .cta-inner {
+        flex-wrap: wrap;
+    }
+
+    .cta-copy {
+        flex: 1 1 280px;
+    }
+
+    .cta-actions {
+        flex: 1 0 100%;
+    }
+}
+
+@media (max-width: 1000px) {
+    .nav-toggle {
+        display: block;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 10px 24px 20px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(11, 12, 14, 0.98);
+        box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .nav-links.is-open {
+        display: flex;
+    }
+
+    .nav-links > a:not(.btn) {
+        flex: none;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+    }
+
+    .nav-links > a:not(.btn).is-active::after {
+        display: none;
+    }
+
+    .nav-dl {
+        flex: none;
+        margin-top: 12px;
+    }
+}
+
+@media (max-width: 860px) {
+    .shot-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat {
+        border-left: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .stat:nth-child(odd) {
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .stat:nth-child(n + 3) {
+        border-bottom: 0;
+    }
+
+    .feature-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scanner-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cta-inner {
+        align-items: flex-start;
+        padding: 28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .container {
+        width: calc(100% - 32px);
+    }
+
+    .section {
+        padding: 68px 0;
+    }
+
+    .hero {
+        padding-top: 46px;
+    }
+
+    .hero h1 {
+        font-size: clamp(3.2rem, 15vw, 4.8rem);
+    }
+
+    .hero-lead {
+        font-size: 0.94rem;
+    }
+
+    .hero-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    .hero-meta {
+        gap: 6px 14px;
+    }
+
+    .release-main {
+        padding: 22px;
+    }
+
+    .float-chip {
+        display: none;
+    }
+
+    .stats {
+        margin-top: 0;
+    }
+
+    .stat {
+        padding: 18px 16px;
+    }
+
+    .stat-num {
+        font-size: 1.35rem;
+    }
+
+    .stat-label {
+        font-size: 0.64rem;
+    }
+
+    .feature-grid,
+    .quick-grid,
+    .privacy-cards {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .req-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mock-body {
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+    }
+
+    .mock-side {
+        display: none;
+    }
+
+    .mock-row {
+        grid-template-columns: 40px minmax(0, 1fr) 42px;
+    }
+
+    .mock-row > span:nth-child(2),
+    .mock-row > span:nth-child(5) {
+        display: none;
+    }
+
+    .mock-toolbar .mock-chip {
+        display: none;
+    }
+
+    .mock-inspector pre {
+        font-size: 0.5rem;
+    }
+
+    .cta-inner {
+        flex-direction: column;
+        gap: 18px;
+        padding: 24px;
+    }
+
+    .cta-inner img {
+        width: 56px;
+        height: 64px;
+    }
+
+    .cta-actions {
+        width: 100%;
+    }
+
+    .cta-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 28px;
+    }
+
+    .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+}
+
+@media (max-width: 460px) {
+    .brand-sub {
+        display: none;
+    }
+
+    .hero h1 {
+        font-size: 3.4rem;
+    }
+
+    .eyebrow {
+        font-size: 0.56rem;
+    }
+
+    .term-body,
+    .term-pane {
+        padding: 14px;
+        font-size: 0.64rem;
+    }
+
+    .term-bar {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+
+    .term-tab {
+        padding: 5px 7px;
+        font-size: 0.54rem;
+    }
+
+    .term-copy {
+        padding: 4px 7px;
+        font-size: 0.54rem;
+    }
+
+    .stats {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stat,
+    .stat:nth-child(odd) {
+        padding-left: 0;
+        border-left: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .stat:last-child {
+        border-bottom: 0;
+    }
+
+    .req-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .release-meta {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .release-hash-row {
+        grid-column: auto;
+    }
+
+    .mock-inspector-head {
+        gap: 9px;
+    }
+
+    .cta-copy h2 {
+        font-size: 1.45rem;
+    }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .cursor,
+    .live-pill i {
+        animation: none;
+    }
+
+    .js .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .feature-card,
+    .btn,
+    .term-copy,
+    .nav-toggle span,
+    .toast {
+        transition: none;
+    }
+}
+
+/* ------------------------------------------------------------------ Extensya */
+
+.mock-engine {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border: 1px solid rgba(var(--green-rgb), 0.24);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--green);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+}
+
+.mock-engine i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--green);
+}
+
+.mock-verdict {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+}
+
+.mock-verdict-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mock-verdict-label {
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.46rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.mock-verdict-value {
+    color: var(--danger);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.mock-score {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.mock-score b {
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.mock-score span {
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.48rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mock-verdict-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-left: auto;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+}
+
+.mock-verdict-meta b {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.mock-verdict-meta .crit b {
+    color: var(--danger);
+}
+
+.mock-tabs {
+    display: flex;
+    gap: 14px;
+    overflow: hidden;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+}
+
+.mock-tab {
+    padding: 9px 0;
+    border-bottom: 1px solid transparent;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.mock-tab.active {
+    border-bottom-color: var(--accent);
+    color: var(--text);
+}
+
+.mock-report-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.85fr);
+    min-height: 300px;
+}
+
+.mock-report-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px 16px;
+    border-right: 1px solid var(--border);
+}
+
+.mock-sec {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin-top: 3px;
+    color: var(--text);
+    font-size: 0.54rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.mock-sec:first-child {
+    margin-top: 0;
+}
+
+.mock-sec b {
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    font-weight: 500;
+}
+
+.mock-sec .more {
+    margin-left: auto;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.46rem;
+    font-weight: 400;
+}
+
+.mock-threat {
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel-2);
+}
+
+.mock-sev {
+    padding: 2px 4px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.42rem;
+    letter-spacing: 0.06em;
+    text-align: center;
+}
+
+.mock-threat.critical .mock-sev {
+    border-color: rgba(var(--danger-rgb), 0.32);
+    background: rgba(var(--danger-rgb), 0.1);
+    color: var(--danger);
+}
+
+.mock-threat.high .mock-sev {
+    border-color: rgba(var(--high-rgb), 0.3);
+    background: rgba(var(--high-rgb), 0.09);
+    color: var(--high);
+}
+
+.mock-threat.medium .mock-sev {
+    border-color: var(--border-strong);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--medium);
+}
+
+.mock-threat b {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 0.54rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mock-threat small {
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.42rem;
+    white-space: nowrap;
+}
+
+.mock-chain {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 8px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel-2);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.46rem;
+}
+
+.mock-chain .src { color: var(--violet); }
+.mock-chain .sink { color: var(--danger); }
+.mock-chain .arrow { color: var(--faint); }
+.mock-chain .endpoint {
+    margin-left: auto;
+    color: var(--high);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mock-report-side {
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.014);
+}
+
+.mock-side-head {
+    margin-bottom: 9px;
+    color: var(--dim);
+    font-family: var(--font-mono);
+    font-size: 0.48rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.mock-tactic {
+    margin-bottom: 8px;
+}
+
+.mock-tactic > span {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+    color: var(--body);
+    font-size: 0.5rem;
+    font-weight: 600;
+}
+
+.mock-tactic > span b {
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: 0.44rem;
+    font-weight: 400;
+}
+
+.mock-tech {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-top: 3px;
+    padding: 3px 5px;
+    border-radius: 4px;
+    background: rgba(var(--violet-rgb), 0.07);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.42rem;
+}
+
+.mock-tech i {
+    color: var(--violet);
+    font-style: normal;
+}
+
+.mock-tech em {
+    overflow: hidden;
+    font-style: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mock-ioc-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px solid var(--border);
+}
+
+.mock-ioc {
+    overflow: hidden;
+    padding: 3px 5px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--high);
+    font-family: var(--font-mono);
+    font-size: 0.42rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.section-detect {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background:
+        radial-gradient(1000px 560px at 10% -10%, rgba(var(--accent-rgb), 0.07), transparent 62%),
+        radial-gradient(900px 520px at 94% 0%, rgba(var(--violet-rgb), 0.06), transparent 60%),
+        var(--bg);
+}
+
+.scan-card .scan-note code {
+    font-size: 0.62rem;
+}
+
+.tactic-cloud span:nth-child(3n + 1) {
+    border-color: rgba(var(--violet-rgb), 0.22);
+    color: #c3a9ff;
+}
+
+.tactic-cloud span:nth-child(3n + 2) {
+    border-color: rgba(var(--danger-rgb), 0.2);
+    color: #ff9b9b;
+}
+
+.sig-family {
+    color: var(--accent);
+}
+
+.detect-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.detect-item {
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+}
+
+.detect-item b {
+    display: block;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    font-weight: 500;
+    line-height: 1.1;
+}
+
+.detect-item span {
+    display: block;
+    margin-top: 4px;
+    color: var(--dim);
+    font-size: 0.68rem;
+}
+
+@media (max-width: 980px) {
+    .mock-report-body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mock-report-main {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .mock-report-side {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 18px;
+    }
+
+    .mock-ioc-row {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    .detect-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .mock-verdict-meta {
+        margin-left: 0;
+    }
+
+    .mock-tabs {
+        overflow-x: auto;
+    }
+
+    .mock-report-side {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mock-ioc-row {
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid var(--border);
+    }
+
+    .mock-chain .endpoint {
+        margin-left: 0;
+    }
+
+    .detect-strip {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.scan-card-wide {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+    .scan-card-wide {
+        grid-column: auto;
+    }
+}
+
+
+/* Screenshot lightbox */
+.shot-link {
+    cursor: zoom-in;
+}
+
+.shot-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3vw, 40px);
+    background: rgba(4, 5, 6, 0.94);
+    cursor: zoom-out;
+}
+
+.shot-lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    cursor: default;
+}
+
+</style>
+    <script>document.documentElement.classList.add('js');</script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Extensya",
+        "applicationCategory": "SecurityApplication",
+        "operatingSystem": "Linux",
+        "softwareVersion": "1.0.0",
+        "description": "A local-first static malware analyzer for browser extensions, with permission analysis, code rules, source-to-sink attack chains, recursive payload decoding, threat signatures, MITRE ATT&CK coverage and IOC extraction.",
+        "author": {
+            "@type": "Person",
+            "name": "0xbit",
+            "url": "https://github.com/0xbitx"
+        }
+    }
+    </script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+    <div class="container nav-inner">
+        <a class="brand" href="#top" aria-label="Extensya home">
+            <img src="screenshots/logo.png" alt="" width="32" height="37">
+            <span class="brand-text">
+                <span class="brand-name">Extensya</span>
+                <span class="brand-sub">Extension Malware Analyzer</span>
+            </span>
+        </a>
+        <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+            <a href="#overview">Overview</a>
+            <a href="#report">The report</a>
+            <a href="#detection">Detection</a>
+            <a href="#screenshots">Screenshots</a>
+            <a href="#install">Install</a>
+            <a href="#privacy">Privacy</a>
+            <a href="https://github.com/0xbitx/Extensya" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a class="btn btn-primary btn-sm nav-dl" href="downloads/extensya" download>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                Download
+            </a>
+        </nav>
+        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Open menu">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</header>
+
+<main id="main">
+    <section class="hero" aria-labelledby="heroTitle">
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="dot" aria-hidden="true"></span> v1.0.0 &middot; Linux x86-64 &middot; Static analysis</p>
+                <h1 id="heroTitle">Open it.<br>Decode it.<br><span class="accent">Judge it.</span></h1>
+                <p class="hero-lead">Extensya is a malware analyzer for browser extensions. Open a <code>.crx</code>, <code>.xpi</code>, <code>.zip</code> or unpacked folder, or paste a store URL, and read what the package is really capable of: permissions, dangerous code, hidden payloads, source-to-sink attack chains, behaviour signatures and a risk score. Nothing is installed. Nothing is executed.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="downloads/extensya" download>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                        Download for Linux
+                    </a>
+                    <a class="btn btn-ghost" href="#install">Install with curl</a>
+                </div>
+                <ul class="hero-meta" aria-label="Highlights">
+                    <li>Read-only analysis</li>
+                    <li>No account</li>
+                    <li>No telemetry</li>
+                    <li>Deterministic JSON + PDF reports</li>
+                </ul>
+            </div>
+
+            <div class="hero-visual">
+                <div class="hero-glow" aria-hidden="true"></div>
+                <div class="term term-hero">
+                    <div class="term-bar">
+                        <span class="term-mark" aria-hidden="true"></span>
+                        <span class="term-title">Extensya</span>
+                        <button class="term-copy" type="button" data-copy-target="#heroCommands" aria-label="Copy install commands">Copy</button>
+                    </div>
+                    <div class="term-body" id="heroCommands">
+                        <div class="term-line comment"># download the latest Linux release</div>
+                        <div class="term-line"><span class="prompt">$</span>curl -L -o extensya https://github.com/0xbitx/Extensya/releases/latest/download/extensya</div>
+                        <div class="term-line comment"># or click Download on this page</div>
+                        <div class="term-line comment"># make it executable and launch</div>
+                        <div class="term-line"><span class="prompt">$</span>chmod +x extensya &amp;&amp; ./extensya</div>
+                        <div class="term-line term-gap" aria-hidden="true"></div>
+                        <div class="term-line ok">&#10003; engine&nbsp;&nbsp; READY</div>
+                        <div class="term-line ok">&#10003; scan&nbsp;&nbsp;&nbsp;&nbsp; invoice-helper.crx &rarr; malicious (100)</div>
+                        <div class="term-line dim">75 findings &middot; 16 chains &middot; 13 threats &middot; 6 payloads<span class="cursor" aria-hidden="true"></span></div>
+                    </div>
+                </div>
+                <span class="float-chip float-chip-1">CRX2 / CRX3 in memory</span>
+                <span class="float-chip float-chip-2">MITRE ATT&amp;CK</span>
+            </div>
+        </div>
+
+        <div class="container stats" aria-label="Extensya at a glance">
+            <div class="stat">
+                <span class="stat-num">59</span>
+                <span class="stat-label">code detection rules</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num">58</span>
+                <span class="stat-label">permission risk grades</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num">22</span>
+                <span class="stat-label">behaviour signatures</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num">27</span>
+                <span class="stat-label">ATT&amp;CK techniques</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="overview" aria-labelledby="overviewTitle">
+        <div class="container overview-grid">
+            <div class="overview-copy reveal">
+                <p class="kicker">What it is</p>
+                <h2 id="overviewTitle">Static analysis that reads the package like an attacker.</h2>
+                <p class="lead">Extensya strips the CRX header in memory, inventories the ZIP payload, and scans every JavaScript, HTML, JSON and support file with comments masked. It explains what the extension can do, how sensitive values move through the code, and which known malicious behaviours the package implements.</p>
+                <p>It is built for analysts, store reviewers, incident responders, malware researchers and anyone who wants a second opinion on a <code>.crx</code> or <code>.xpi</code> before installing it. The output is a deterministic report: permissions, findings, chains, decoded payloads, signatures, MITRE techniques, IOCs and hashes, ready to export as JSON or as a black-theme PDF.</p>
+                <p>Extensya is not a sandbox. It never installs the extension, never executes its scripts and never opens it in a browser profile. It reads bytes and reasons about them. A clean verdict means nothing suspicious was visible to static analysis, not that the package is safe.</p>
+                <div class="pill-row" aria-label="Main tools">
+                    <span>Package intake</span>
+                    <span>Manifest audit</span>
+                    <span>Code rules</span>
+                    <span>Attack chains</span>
+                    <span>Payload decoder</span>
+                    <span>Threat signatures</span>
+                    <span>ATT&amp;CK matrix</span>
+                    <span>IOC inventory</span>
+                </div>
+            </div>
+
+            <aside class="spec-card reveal" aria-labelledby="specTitle">
+                <p class="spec-head" id="specTitle">At a glance</p>
+                <dl class="spec-list">
+                    <div><dt>Input</dt><dd><code>.crx .xpi .zip</code> folder, URL</dd></div>
+                    <div><dt>Desktop</dt><dd>GTK 3 + WebKitGTK 4.1</dd></div>
+                    <div><dt>Analysis</dt><dd>Static only</dd></div>
+                    <div><dt>Payloads</dt><dd>4 recursive layers</dd></div>
+                    <div><dt>Network</dt><dd>Local only</dd></div>
+                    <div><dt>AI</dt><dd>Opt-in, OpenAI-compatible</dd></div>
+                    <div><dt>Telemetry</dt><dd>None</dd></div>
+                </dl>
+                <p class="spec-note">Packages are parsed in memory and capped at 64 MB. Store URL scans download over HTTPS; local scans never touch the network.</p>
+            </aside>
+        </div>
+    </section>
+
+    <section class="section section-workbench" id="report" aria-labelledby="reportTitle">
+        <div class="container">
+            <div class="section-head reveal">
+                <div>
+                    <p class="kicker">The report</p>
+                    <h2 id="reportTitle">A verdict you can defend.</h2>
+                </div>
+                <p class="section-note">Every score is backed by evidence you can open, copy and put in a ticket.</p>
+            </div>
+
+            <div class="mock-wrap reveal">
+                <div class="mock-app mock-report" role="img" aria-label="Preview of an Extensya report for a malicious extension: verdict malicious, risk score 100, 75 findings, 16 attack chains, 13 threat signatures and a MITRE ATT&amp;CK panel">
+                    <div class="mock-top">
+                        <div class="mock-brand">
+                            <span class="mock-mark" aria-hidden="true"></span>
+                            <span class="mock-brand-name">Extensya</span>
+                            <span class="mock-brand-sub">Security report</span>
+                        </div>
+                        <div class="mock-top-right">
+                            <span class="mock-engine"><i aria-hidden="true"></i> READY</span>
+                            <span class="mock-proxy">target <code>Invoice Helper 4.2.1</code></span>
+                        </div>
+                    </div>
+
+                    <div class="mock-verdict">
+                        <div class="mock-verdict-block">
+                            <span class="mock-verdict-label">Verdict</span>
+                            <span class="mock-verdict-value">Malicious</span>
+                        </div>
+                        <div class="mock-score"><b>100</b><span>/100 risk score</span></div>
+                        <div class="mock-verdict-meta">
+                            <span><b>75</b> findings</span>
+                            <span><b>16</b> chains</span>
+                            <span><b>13</b> threats</span>
+                            <span><b>6</b> payloads</span>
+                            <span class="crit"><b>12</b> critical</span>
+                        </div>
+                    </div>
+
+                    <div class="mock-tabs" aria-hidden="true">
+                        <span class="mock-tab active">Overview</span>
+                        <span class="mock-tab">Permissions</span>
+                        <span class="mock-tab">Findings</span>
+                        <span class="mock-tab">Attack chains</span>
+                        <span class="mock-tab">Threats</span>
+                        <span class="mock-tab">Payloads</span>
+                        <span class="mock-tab">Manifest</span>
+                        <span class="mock-tab">Files</span>
+                        <span class="mock-tab">Source</span>
+                    </div>
+
+                    <div class="mock-report-body">
+                        <div class="mock-report-main">
+                            <div class="mock-sec">Threat signatures <b>13</b><span class="more">View all</span></div>
+                            <div class="mock-threat critical">
+                                <span class="mock-sev">CRITICAL</span><b>Session stealer</b><small>COMBO_COOKIE_EXFIL</small>
+                            </div>
+                            <div class="mock-threat critical">
+                                <span class="mock-sev">CRITICAL</span><b>Credential form harvester</b><small>COMBO_FORM_GRAB</small>
+                            </div>
+                            <div class="mock-threat critical">
+                                <span class="mock-sev">CRITICAL</span><b>Remote loader</b><small>COMBO_REMOTE_LOADER</small>
+                            </div>
+                            <div class="mock-threat high">
+                                <span class="mock-sev">HIGH</span><b>Obfuscated execution</b><small>cross-file &middot; 2</small>
+                            </div>
+                            <div class="mock-threat high">
+                                <span class="mock-sev">HIGH</span><b>Hidden infostealer</b><small>decisive</small>
+                            </div>
+
+                            <div class="mock-sec">Attack chains <b>16</b><span class="more">View all</span></div>
+                            <div class="mock-chain">
+                                <span class="src">document.cookie</span><span class="arrow">&rarr;</span><span>fetch()</span><span class="arrow">&rarr;</span><span class="sink">sink</span>
+                                <span class="endpoint">https://discord.com/api/webhooks/&hellip;</span>
+                            </div>
+                            <div class="mock-chain">
+                                <span class="src">password field</span><span class="arrow">&rarr;</span><span>sendBeacon()</span><span class="arrow">&rarr;</span><span class="sink">sink</span>
+                                <span class="endpoint">http://185.220.101.42/login</span>
+                            </div>
+                            <div class="mock-chain">
+                                <span class="src">atob()</span><span class="arrow">&rarr;</span><span>eval()</span><span class="arrow">&rarr;</span><span class="sink">execution</span>
+                                <span class="endpoint">background.js:62</span>
+                            </div>
+                        </div>
+
+                        <aside class="mock-report-side" aria-hidden="true">
+                            <div class="mock-side-head">MITRE ATT&amp;CK coverage</div>
+                            <div class="mock-tactic">
+                                <span>Credential Access <b>3</b></span>
+                                <div class="mock-tech"><i>T1539</i><em>Steal Web Session Cookie</em></div>
+                                <div class="mock-tech"><i>T1555</i><em>Credentials from Password Stores</em></div>
+                                <div class="mock-tech"><i>T1056.003</i><em>Web Portal Capture</em></div>
+                            </div>
+                            <div class="mock-tactic">
+                                <span>Collection <b>3</b></span>
+                                <div class="mock-tech"><i>T1056.001</i><em>Keylogging</em></div>
+                                <div class="mock-tech"><i>T1115</i><em>Clipboard Data</em></div>
+                                <div class="mock-tech"><i>T1185</i><em>Browser Session Hijacking</em></div>
+                            </div>
+                            <div class="mock-tactic">
+                                <span>Command and Control <b>2</b></span>
+                                <div class="mock-tech"><i>T1071</i><em>Application Layer Protocol</em></div>
+                                <div class="mock-tech"><i>T1090</i><em>Proxy</em></div>
+                            </div>
+                            <div class="mock-ioc-row">
+                                <div class="mock-side-head">Indicators of compromise</div>
+                                <div class="mock-ioc">discord.com/api/webhooks/&hellip;</div>
+                                <div class="mock-ioc">http://185.220.101.42/collect</div>
+                                <div class="mock-ioc">extensya-demo.onion/drop</div>
+                                <div class="mock-ioc">0x9f8E7d6C5b4A&hellip;5432</div>
+                            </div>
+                        </aside>
+                    </div>
+
+                    <div class="mock-foot">
+                        <span>75 findings</span>
+                        <span>16 chains</span>
+                        <span>13 threats</span>
+                        <span>6 payloads</span>
+                        <span>SHA-256 &middot; JSON + PDF export</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-chips reveal" aria-label="Report capabilities">
+                <span>Risk score &amp; verdict</span>
+                <span>Capability groups</span>
+                <span>Cross-file signatures</span>
+                <span>Click-through evidence</span>
+                <span>Deterministic JSON + PDF</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="featuresTitle">
+        <div class="container">
+            <div class="section-head reveal">
+                <div>
+                    <p class="kicker">Toolbox</p>
+                    <h2 id="featuresTitle">Every angle on the package.</h2>
+                </div>
+                <p class="section-note">One report connects the manifest, the code, the hidden layers and the behaviour.</p>
+            </div>
+
+            <div class="feature-grid">
+                <article class="feature-card reveal">
+                    <span class="feature-num">01</span>
+                    <h3>Package intake</h3>
+                    <p>Open <code>.crx</code>, <code>.xpi</code>, <code>.zip</code>, <code>.nex</code> or <code>.jar</code>, drop an unpacked folder, paste a 32-character Chrome extension ID, or paste a Chrome Web Store, Firefox AMO, Edge Add-ons or Opera add-ons listing URL. CRX2/CRX3 headers are stripped in memory.</p>
+                    <div class="tags"><span>CRX</span><span>XPI</span><span>folder</span><span>store URL</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">02</span>
+                    <h3>Manifest intelligence</h3>
+                    <p>Every declared permission is graded per API: cookies, debugger, proxy, native messaging, clipboard, history, management, identity, webRequest, scripting, tabs and more. Host access, content-script matches, <code>all_frames</code>, externally connectable origins, CSP, update URLs and MV2 vs MV3 are all audited.</p>
+                    <div class="tags"><span>58 risk grades</span><span>&lt;all_urls&gt;</span><span>CSP</span><span>MV3</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">03</span>
+                    <h3>Rule-based code scanning</h3>
+                    <p>59 rules look for remote code, <code>eval</code> and <code>new Function</code>, <code>eval(atob(...))</code>, remote script imports, <code>executeScript({code})</code>, obfuscation, packers, anti-debug statements, reversed endpoints, webhooks, Telegram bots, <code>.onion</code> services, bare-IP endpoints and dangerous API combinations.</p>
+                    <div class="tags"><span>59 rules</span><span>comments masked</span><span>combinations</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">04</span>
+                    <h3>Source-to-sink attack chains</h3>
+                    <p>A data-flow pass traces cookies, password fields, keystrokes, clipboard data, history, tabs, identity tokens, storage, location, camera, screenshots, page content and decoded payloads into network, execution, injection, download and cookie-write sinks. A password manager that reads a field and never sends it is separated from a stealer.</p>
+                    <div class="tags"><span>19 sources</span><span>14 sinks</span><span>endpoint</span><span>confidence</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">05</span>
+                    <h3>Hidden payload decoding</h3>
+                    <p>Recursive static decoding of Base64, hex, URL escapes, Unicode escapes, character codes, reversed strings, Dean Edwards packers and obfuscator string arrays, up to four layers deep. Every layer keeps its provenance, is re-scanned with the normal rules, and yields IOCs and MITRE techniques.</p>
+                    <div class="tags"><span>4 layers</span><span>provenance</span><span>re-scanned</span><span>IOCs</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">06</span>
+                    <h3>Threat signatures</h3>
+                    <p>22 curated cross-file behaviour signatures: session stealing, credential harvesting, keylogging, crypto clipping, remote loaders, update hijacking, ad injection, cookie stuffing, search hijacking, proxyware, cryptomining, data brokering, extension tampering, native shell bridges, wallet draining, obfuscated execution, hidden infostealers, anti-analysis and more.</p>
+                    <div class="tags"><span>22 signatures</span><span>cross-file</span><span>decisive</span><span>covered</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">07</span>
+                    <h3>MITRE ATT&amp;CK &amp; IOCs</h3>
+                    <p>Every technique emitted by a signature, attack chain or decoded payload is grouped by tactic in the Threats tab. The IOC inventory deduplicates endpoints, webhooks, raw-IP URLs, Tor services, wallets, tokens and secrets, and sends any indicator to the Decoder with one click.</p>
+                    <div class="tags"><span>14 tactics</span><span>27 techniques</span><span>IOC inventory</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">08</span>
+                    <h3>Source workbench</h3>
+                    <p>A full-window code review with a file rail, syntax highlighting, gutter markers, find, wrap, copy, save, inline editing and per-file heuristics. It reports entropy, endpoints, a local risk score and the scan findings that point into the file. Beautify formats JS, TS, JSON, CSS, HTML, Python and more without executing anything.</p>
+                    <div class="tags"><span>syntax</span><span>gutter markers</span><span>Beautify</span><span>find</span></div>
+                </article>
+
+                <article class="feature-card reveal">
+                    <span class="feature-num">09</span>
+                    <h3>Decoder &amp; AI second opinion</h3>
+                    <p>A local transform workbench for Base64, URL, hex, HTML entities, ROT13, binary, octal, Unicode, JWT, case, reverse, URL extraction, hashes and format identification. Optionally ask OpenRouter, DeepSeek, local Ollama/LM Studio or any OpenAI-compatible model to review the static evidence as untrusted data.</p>
+                    <div class="tags"><span>decoder</span><span>JWT</span><span>opt-in AI</span><span>local models</span></div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-detect" id="detection" aria-labelledby="detectionTitle">
+        <div class="container">
+            <div class="section-head reveal">
+                <div>
+                    <p class="kicker">Detection</p>
+                    <h2 id="detectionTitle">Rules find APIs. Signatures find behaviour.</h2>
+                </div>
+                <p class="section-note">A single permission is capability. A complete behaviour, assembled across files, is evidence.</p>
+            </div>
+
+            <div class="scanner-grid">
+                <article class="scan-card reveal">
+                    <header>
+                        <span class="scan-num">22</span>
+                        <h3>Behaviour signatures</h3>
+                    </header>
+                    <div class="tag-cloud" aria-label="Behaviour signature families">
+                        <span>Session stealer</span>
+                        <span>Credential harvester</span>
+                        <span>Keylogger</span>
+                        <span>Crypto clipper</span>
+                        <span>Remote loader</span>
+                        <span>Staged loader</span>
+                        <span>Update hijacker</span>
+                        <span>Ad injector</span>
+                        <span>Cookie stuffer</span>
+                        <span>Search hijacker</span>
+                        <span>Proxyware</span>
+                        <span>Cryptominer</span>
+                        <span>Data broker</span>
+                        <span>Extension tamper</span>
+                        <span>Native shell bridge</span>
+                        <span>Download and execute</span>
+                        <span>Form-action hijack</span>
+                        <span>Wallet drainer</span>
+                        <span>Obfuscated execution</span>
+                        <span>Hidden infostealer</span>
+                        <span>Anti-analysis</span>
+                        <span>Tab hijacker</span>
+                    </div>
+                    <p class="scan-note">Each signature can combine code patterns from different files with manifest capabilities, source-to-sink chains and decoded payloads. Matches carry severity, confidence, decisive/covered status, the contributing files and clickable evidence.</p>
+                </article>
+
+                <article class="scan-card reveal">
+                    <header>
+                        <span class="scan-num">27</span>
+                        <h3>ATT&amp;CK techniques</h3>
+                    </header>
+                    <div class="tag-cloud tactic-cloud" aria-label="MITRE ATT&amp;CK tactics and example techniques">
+                        <span>Credential Access</span>
+                        <span>T1539 Session Cookie</span>
+                        <span>T1555 Password Stores</span>
+                        <span>Collection</span>
+                        <span>T1056.001 Keylogging</span>
+                        <span>T1115 Clipboard Data</span>
+                        <span>Command and Control</span>
+                        <span>T1071 Application Layer</span>
+                        <span>T1090 Proxy</span>
+                        <span>Exfiltration</span>
+                        <span>T1041 C2 Channel</span>
+                        <span>T1567 Web Service</span>
+                        <span>Defense Evasion</span>
+                        <span>T1027 Obfuscation</span>
+                        <span>T1140 Deobfuscate</span>
+                        <span>Execution</span>
+                        <span>T1059.007 JavaScript</span>
+                        <span>Persistence</span>
+                        <span>T1176 Browser Extensions</span>
+                        <span>Impact</span>
+                        <span>T1496 Resource Hijacking</span>
+                        <span>Discovery</span>
+                        <span>T1217 Bookmark Discovery</span>
+                        <span>Initial Access</span>
+                        <span>T1195 Supply Chain</span>
+                    </div>
+                    <p class="scan-note">The matrix is built from the current scan, not a static checklist. Techniques are grouped by tactic and linked back to the signature, chain or payload that produced them, so coverage reflects the evidence in this package.</p>
+                </article>
+
+                <article class="scan-card scan-card-wide reveal">
+                    <header>
+                        <span class="scan-num">IOC</span>
+                        <h3>Indicators of compromise</h3>
+                    </header>
+                    <div class="tag-cloud">
+                        <span>Discord webhooks</span>
+                        <span>Telegram bot APIs</span>
+                        <span>Raw-IP endpoints</span>
+                        <span>.onion services</span>
+                        <span>Collector domains</span>
+                        <span>Tunnel domains</span>
+                        <span>Cryptocurrency wallets</span>
+                        <span>Embedded API keys</span>
+                        <span>OAuth tokens</span>
+                        <span>Hardcoded secrets</span>
+                        <span>Remote script URLs</span>
+                        <span>Proxy endpoints</span>
+                        <span>Mining pools</span>
+                        <span>Exfiltration URLs</span>
+                    </div>
+                    <p class="scan-note">IOCs come from decoded payload layers and traced sink endpoints, deduplicated by value. Click one to open it in the Decoder, or export the whole report and keep the evidence with its <code>file:line</code> provenance.</p>
+                </article>
+            </div>
+
+            <div class="detect-strip reveal" aria-label="Detection pipeline">
+                <div class="detect-item"><b>01</b><span>Manifest capabilities and permission grades</span></div>
+                <div class="detect-item"><b>02</b><span>Code rules, combinations and obfuscation</span></div>
+                <div class="detect-item"><b>03</b><span>Source-to-sink chains and decoded payloads</span></div>
+                <div class="detect-item"><b>04</b><span>Cross-file signatures, score and verdict</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="screenshots" aria-labelledby="screenshotsTitle">
+        <div class="container">
+            <div class="section-head reveal">
+                <div>
+                    <p class="kicker">Screenshots</p>
+                    <h2 id="screenshotsTitle">Read the evidence, not a black box.</h2>
+                </div>
+                <p class="section-note">Real reports from a synthetic malicious extension built for the demo.</p>
+            </div>
+
+            <div class="shot-grid">
+                <figure class="shot-card reveal">
+                    <a class="shot-link" href="screenshots/overview.png" target="_blank" rel="noopener noreferrer" title="Open the overview screenshot full size">
+                        <span class="shot-frame">
+                            <img src="screenshots/overview.png" alt="Extensya overview for a malicious extension with risk score 100, capability groups, the strongest behaviour signatures and the top attack chains" decoding="async">
+                        </span>
+                    </a>
+                    <figcaption>
+                        <span class="shot-label">Overview</span>
+                        <h3>Verdict and capabilities</h3>
+                        <p>The risk score, capability groups and the strongest behaviour signatures at a glance.</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="shot-card reveal">
+                    <a class="shot-link" href="screenshots/threats.png" target="_blank" rel="noopener noreferrer" title="Open the threat signatures screenshot full size">
+                        <span class="shot-frame">
+                            <img src="screenshots/threats.png" alt="Extensya Threats tab with critical and high behaviour signatures, confidence, evidence and MITRE technique chips" decoding="async">
+                        </span>
+                    </a>
+                    <figcaption>
+                        <span class="shot-label">Threats</span>
+                        <h3>Behaviour signatures</h3>
+                        <p>Curated cross-file behaviours with confidence, decisive/covered status and clickable evidence.</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="shot-card reveal">
+                    <a class="shot-link" href="screenshots/attack-chains.png" target="_blank" rel="noopener noreferrer" title="Open the attack chains screenshot full size">
+                        <span class="shot-frame">
+                            <img src="screenshots/attack-chains.png" alt="Extensya Attack chains tab showing a source-to-sink flow from session cookies to an HTTP request with MITRE techniques and remediation" decoding="async">
+                        </span>
+                    </a>
+                    <figcaption>
+                        <span class="shot-label">Attack chains</span>
+                        <h3>Source to sink</h3>
+                        <p>Every assignment hop, sink and destination endpoint, with severity, confidence and remediation.</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="shot-card reveal">
+                    <a class="shot-link" href="screenshots/payloads.png" target="_blank" rel="noopener noreferrer" title="Open the hidden payloads screenshot full size">
+                        <span class="shot-frame">
+                            <img src="screenshots/payloads.png" alt="Extensya Payloads tab with decoded Base64 layers, provenance, recovered IOCs and rule hits" decoding="async">
+                        </span>
+                    </a>
+                    <figcaption>
+                        <span class="shot-label">Payloads</span>
+                        <h3>Hidden payloads</h3>
+                        <p>Decoded layers, provenance, recovered IOCs and the encoded <code>file:line</code> that produced them.</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="shot-card shot-card-featured reveal">
+                    <a class="shot-link" href="screenshots/code-review.png" target="_blank" rel="noopener noreferrer" title="Open the code review screenshot full size">
+                        <span class="shot-frame">
+                            <img src="screenshots/code-review.png" alt="Extensya code review window showing background.js with syntax highlighting, per-line severity dots, the package file list and a per-file analysis panel" decoding="async">
+                        </span>
+                    </a>
+                    <figcaption>
+                        <span class="shot-label">Code review</span>
+                        <h3>Every line, in context</h3>
+                        <p>Full-window source review: file tree with hit counts, marked lines and the signal behind each one.</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="shot-card shot-card-featured reveal">
+                    <a class="shot-link" href="screenshots/attack-matrix.png" target="_blank" rel="noopener noreferrer" title="Open the ATT&amp;CK coverage and IOC screenshot full size">
+                        <span class="shot-frame">
+                            <img src="screenshots/attack-matrix.png" alt="Extensya MITRE ATT&amp;CK tactic matrix and indicators of compromise inventory built from the current scan" decoding="async">
+                        </span>
+                    </a>
+                    <figcaption>
+                        <span class="shot-label">ATT&amp;CK &amp; IOCs</span>
+                        <h3>Map the behaviour</h3>
+                        <p>Techniques grouped by tactic, plus the endpoints and secrets recovered from the package.</p>
+                    </figcaption>
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-alt" id="install" aria-labelledby="installTitle">
+        <div class="container">
+            <div class="section-head reveal">
+                <div>
+                    <p class="kicker">Install</p>
+                    <h2 id="installTitle">One binary. One terminal.</h2>
+                </div>
+                <p class="section-note">Download the Linux build, make it executable, open a package. No installer, no package manager and no Python runtime required.</p>
+            </div>
+
+            <div class="release-card reveal" aria-labelledby="releaseTitle">
+                <div class="release-main">
+                    <p class="release-eyebrow"><span class="release-dot" aria-hidden="true"></span> Current release</p>
+                    <h3 id="releaseTitle">Extensya 1.0.0 <span>for Linux x86-64</span></h3>
+                    <p class="release-copy">A single native build with the package reader, scanner, payload decoder, chain engine, signature engine and desktop UI embedded. GTK 3 and WebKitGTK 4.1 are the only system libraries.</p>
+                    <div class="release-actions">
+                        <a class="btn btn-primary" href="downloads/extensya" download>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                            Download 36 MB
+                        </a>
+                        <a class="btn btn-ghost" href="downloads/SHA256SUMS">Checksum file</a>
+                    </div>
+                </div>
+                <dl class="release-meta">
+                    <div><dt>Version</dt><dd>1.0.0</dd></div>
+                    <div><dt>Platform</dt><dd>Linux x86-64</dd></div>
+                    <div><dt>Size</dt><dd>36 MB</dd></div>
+                    <div><dt>Format</dt><dd>ELF, executable</dd></div>
+                    <div class="release-hash-row">
+                        <dt>SHA-256</dt>
+                        <dd>
+                            <code id="releaseHash">ea21b549a4a7aea44ae3c41cf3316db10b1da6e584c08f4905bc1dfc93717005</code>
+                            <button class="release-hash-copy" type="button" data-copy-target="#releaseHash" data-copy-label="Checksum copied" aria-label="Copy the SHA-256 checksum">Copy</button>
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="install-grid">
+                <div class="install-steps reveal">
+                    <ol class="steps">
+                        <li>
+                            <span class="step-num">01</span>
+                            <div>
+                                <h3>Get the binary</h3>
+                                <p>Download the Linux x86-64 release above, or copy the curl command. The build carries the package reader, scanner, payload decoder, chain engine, signature engine and desktop UI.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="step-num">02</span>
+                            <div>
+                                <h3>Install the desktop stack</h3>
+                                <p>The native build needs GTK 3 and WebKitGTK 4.1:</p>
+                                <div class="dep-cmds">
+                                    <p><span>Debian / Ubuntu / Kali</span> <code>sudo apt install libgtk-3-0 gir1.2-webkit2-4.1 python3-gi python3-pip</code></p>
+                                    <p><span>Fedora</span> <code>sudo dnf install gtk3 webkit2gtk4.1 python3-gobject python3-pip</code></p>
+                                    <p><span>Arch Linux</span> <code>sudo pacman -S gtk3 webkit2gtk-4.1 python-gobject python-pip</code></p>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="step-num">03</span>
+                            <div>
+                                <h3>Launch Extensya</h3>
+                                <p>Run <code>./extensya</code>. The window opens locally. No server, no account and no browser profile are required.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="step-num">04</span>
+                            <div>
+                                <h3>Scan a package</h3>
+                                <p>Drop a <code>.crx</code>, <code>.xpi</code>, <code>.zip</code> or folder, or use <strong>From URL</strong>. Read the overview, then walk Permissions, Findings, Attack chains, Threats, Payloads, Files and Source.</p>
+                            </div>
+                        </li>
+                    </ol>
+                    <p class="install-note"><strong>Verify before you run.</strong> Compare <code>sha256sum extensya</code> with the published <a href="downloads/SHA256SUMS">SHA256SUMS</a>. <strong>Nothing is installed or executed:</strong> packages are read in memory, CRX headers are stripped, ZIP entries are inventoried and decoded payloads are inspected as text. Extensya does not run the extension.</p>
+                </div>
+
+                <div class="term term-install reveal">
+                    <div class="term-bar">
+                        <span class="term-mark" aria-hidden="true"></span>
+                        <span class="term-title">Extensya</span>
+                        <div class="term-tabs" role="tablist" aria-label="Install commands">
+                            <button class="term-tab is-active" type="button" role="tab" aria-selected="true" data-term="download">download</button>
+                            <button class="term-tab" type="button" role="tab" aria-selected="false" data-term="verify">verify</button>
+                            <button class="term-tab" type="button" role="tab" aria-selected="false" data-term="debian">debian</button>
+                            <button class="term-tab" type="button" role="tab" aria-selected="false" data-term="fedora">fedora</button>
+                            <button class="term-tab" type="button" role="tab" aria-selected="false" data-term="arch">arch</button>
+                        </div>
+                        <button class="term-copy" type="button" data-copy-term aria-label="Copy the active terminal commands">Copy</button>
+                    </div>
+                    <div class="term-body">
+                        <pre class="term-pane is-active" data-pane="download"><span class="comment"># Extensya v1.0.0, Linux x86-64</span>
+<span class="comment"># published release, or use the Download button above</span>
+<span class="prompt">$</span> curl -L -o extensya https://github.com/0xbitx/Extensya/releases/latest/download/extensya
+
+<span class="prompt">$</span> chmod +x extensya
+<span class="prompt">$</span> ./extensya</pre>
+                        <pre class="term-pane" data-pane="verify"><span class="comment"># compare with the published SHA256SUMS</span>
+<span class="prompt">$</span> sha256sum -c SHA256SUMS
+<span class="ok">extensya: OK</span>
+
+<span class="comment"># or check the hash directly</span>
+<span class="prompt">$</span> sha256sum extensya
+ea21b549a4a7aea44ae3c41cf3316db10b1da6e584c08f4905bc1dfc93717005  extensya</pre>
+                        <pre class="term-pane" data-pane="debian"><span class="comment"># Debian, Ubuntu, Kali</span>
+<span class="prompt">$</span> sudo apt update
+<span class="prompt">$</span> sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0 gir1.2-webkit2-4.1 python3-gi python3-pip</pre>
+                        <pre class="term-pane" data-pane="fedora"><span class="comment"># Fedora</span>
+<span class="prompt">$</span> sudo dnf install gtk3 webkit2gtk4.1 python3-gobject python3-pip</pre>
+                        <pre class="term-pane" data-pane="arch"><span class="comment"># Arch Linux</span>
+<span class="prompt">$</span> sudo pacman -S gtk3 webkit2gtk-4.1 python-gobject python-pip</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="req-grid reveal" aria-label="Requirements">
+                <div><span>Platform</span><strong>Linux x86-64</strong></div>
+                <div><span>Runtime</span><strong>Native ELF, Python embedded</strong></div>
+                <div><span>Desktop</span><strong>GTK 3 + WebKitGTK 4.1</strong></div>
+                <div><span>Session</span><strong>X11 or Wayland</strong></div>
+                <div><span>Analysis</span><strong>Static only</strong></div>
+                <div><span>Network</span><strong>Local-first</strong></div>
+            </div>
+
+            <div class="quick-head reveal">
+                <p class="kicker">After install</p>
+                <h3>From launch to a defensible verdict</h3>
+            </div>
+            <div class="quick-grid">
+                <article class="quick-card reveal">
+                    <span class="step-num">01</span>
+                    <h3>Drop a package</h3>
+                    <p>Use <strong>Open package</strong>, <strong>Folder</strong> or <strong>From URL</strong>. Store pages, bare extension IDs and direct package links are resolved automatically.</p>
+                </article>
+                <article class="quick-card reveal">
+                    <span class="step-num">02</span>
+                    <h3>Read the verdict</h3>
+                    <p>Start with the score, the capability groups and the top signatures. Open any evidence row to jump to the exact file and line.</p>
+                </article>
+                <article class="quick-card reveal">
+                    <span class="step-num">03</span>
+                    <h3>Walk the detections</h3>
+                    <p>Check permissions, rule findings, attack chains, decoded payloads, ATT&amp;CK coverage and the IOC inventory before you decide.</p>
+                </article>
+                <article class="quick-card reveal">
+                    <span class="step-num">04</span>
+                    <h3>Export the evidence</h3>
+                    <p>Write the complete report as JSON or a black-theme PDF: findings, chains, payloads, signatures, permissions, hashes and the optional AI review.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="privacy" aria-labelledby="privacyTitle">
+        <div class="container privacy-grid">
+            <div class="privacy-copy reveal">
+                <p class="kicker">Local by design</p>
+                <h2 id="privacyTitle">Your samples stay on your machine.</h2>
+                <p class="lead">Extensya runs offline and locally. There is no account, no telemetry and no cloud backend. Packages are read from disk or downloaded into memory, and nothing is installed or executed. The only network traffic is the store download you explicitly request and the optional AI review you explicitly run.</p>
+                <p>URL scans download the current version over HTTPS with a 64 MB cap, so the store sees a request from this machine. Rescan to check a newer build. The static rules stay the evidence of record; an AI verdict is a second opinion, not proof.</p>
+                <p class="guardrails"><strong>Read-only by construction:</strong> CRX headers are stripped in memory, ZIP entries are inventoried in memory, comments are masked before matching, and decoded payloads are inspected as text.</p>
+            </div>
+
+            <div class="privacy-cards">
+                <article class="privacy-card reveal">
+                    <h3>No cloud</h3>
+                    <p>No hosted service, no account and no telemetry. Reports and settings stay under your control.</p>
+                </article>
+                <article class="privacy-card reveal">
+                    <h3>Read-only analysis</h3>
+                    <p>The extension is never installed, its scripts are never executed and no browser profile is touched.</p>
+                </article>
+                <article class="privacy-card reveal">
+                    <h3>Opt-in AI</h3>
+                    <p>Local Ollama and LM Studio keep evidence on your machine. Third-party providers only see the pack you attach.</p>
+                </article>
+                <article class="privacy-card reveal">
+                    <h3>Portable evidence</h3>
+                    <p>Export a deterministic JSON report or a black-theme PDF with findings, chains, payloads, signatures, IOCs and hashes.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta" aria-labelledby="ctaTitle">
+        <div class="container">
+            <div class="cta-inner reveal">
+                <img src="screenshots/logo.png" alt="" width="72" height="82">
+                <div class="cta-copy">
+                    <p class="kicker">Get Extensya</p>
+                    <h2 id="ctaTitle">Ready to read your next extension?</h2>
+                    <p>Download the Linux build and inspect a package in under a minute. No account, no telemetry and nothing executed.</p>
+                </div>
+                <div class="cta-actions">
+                    <a class="btn btn-primary" href="downloads/extensya" download>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+                        Download v1.0.0
+                    </a>
+                    <a class="btn btn-ghost" href="https://github.com/0xbitx/Extensya/blob/main/README.md">Read the docs</a>
+                </div>
+            </div>
+            <p class="cta-note">Linux x86-64 &middot; GTK 3 + WebKitGTK 4.1 &middot; Defensive analysis only</p>
+        </div>
+    </section>
+</main>
+
+<footer class="footer" id="site-footer">
+    <div class="container footer-grid">
+        <div class="footer-brand">
+            <a class="brand" href="#top" aria-label="Extensya home">
+                <img src="screenshots/logo.png" alt="" width="32" height="37">
+                <span class="brand-text">
+                    <span class="brand-name">Extensya</span>
+                    <span class="brand-sub">Extension Malware Analyzer</span>
+                </span>
+            </a>
+            <p>Static malware analysis for browser extensions. Built for analysts, store reviewers, incident responders and security research.</p>
+            <p class="footer-warn">Treat every package as hostile. Never install a sample or open it in a profile with real credentials.</p>
+        </div>
+
+        <div class="footer-col">
+            <h4>Product</h4>
+            <a href="#overview">Overview</a>
+            <a href="#report">The report</a>
+            <a href="#detection">Detection</a>
+            <a href="#screenshots">Screenshots</a>
+            <a href="#install">Install</a>
+        </div>
+
+        <div class="footer-col">
+            <h4>Resources</h4>
+            <a href="https://github.com/0xbitx/Extensya/blob/main/README.md">Documentation</a>
+            <a href="https://github.com/0xbitx/Extensya/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+            <a href="https://github.com/0xbitx/Extensya/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+        </div>
+
+        <div class="footer-col">
+            <h4>Creator</h4>
+            <a href="https://github.com/0xbitx" target="_blank" rel="noopener noreferrer">0xbit on GitHub</a>
+        </div>
+    </div>
+
+    <div class="container footer-bottom">
+        <span>&copy; <span id="year">2026</span> Extensya &middot; Created by 0xbit</span>
+        <span>Static analysis only &middot; No telemetry &middot; Local-first</span>
+    </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite">Copied to clipboard</div>
+<script>
+(() => {
+    "use strict";
+
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+    const year = $("#year");
+    if (year) {
+        year.textContent = String(new Date().getFullYear());
+    }
+
+    const nav = $(".nav");
+    const updateNav = () => {
+        if (nav) {
+            nav.classList.toggle("is-scrolled", window.scrollY > 8);
+        }
+    };
+    updateNav();
+    window.addEventListener("scroll", updateNav, { passive: true });
+
+    const navToggle = $("#navToggle");
+    const navLinks = $("#navLinks");
+
+    const closeNav = () => {
+        if (!navToggle || !navLinks) return;
+        navLinks.classList.remove("is-open");
+        navToggle.setAttribute("aria-expanded", "false");
+        navToggle.setAttribute("aria-label", "Open menu");
+    };
+
+    if (navToggle && navLinks) {
+        navToggle.addEventListener("click", () => {
+            const open = navLinks.classList.toggle("is-open");
+            navToggle.setAttribute("aria-expanded", String(open));
+            navToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        navLinks.addEventListener("click", (event) => {
+            if (event.target.closest("a")) {
+                closeNav();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeNav();
+            }
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!navLinks.classList.contains("is-open")) return;
+            if (navLinks.contains(event.target) || navToggle.contains(event.target)) return;
+            closeNav();
+        });
+    }
+
+
+    const navAnchors = $$('.nav-links a[href^="#"]');
+    const spySections = navAnchors
+        .map((anchor) => {
+            const id = anchor.getAttribute("href");
+            return id && id.length > 1 ? document.querySelector(id) : null;
+        })
+        .filter(Boolean);
+
+    if (spySections.length) {
+        const updateSpy = () => {
+            const marker = window.scrollY + 150;
+            let activeId = "";
+
+            spySections.forEach((section) => {
+                const top = section.getBoundingClientRect().top + window.scrollY;
+                if (top <= marker) {
+                    activeId = section.id;
+                }
+            });
+
+            navAnchors.forEach((anchor) => {
+                anchor.classList.toggle("is-active", anchor.getAttribute("href") === `#${activeId}`);
+            });
+        };
+
+        updateSpy();
+        window.addEventListener("scroll", updateSpy, { passive: true });
+    }
+
+
+    $$(".term-tabs").forEach((tabs) => {
+        const term = tabs.closest(".term");
+        if (!term) return;
+
+        const panes = $$(".term-pane", term);
+        const tabButtons = $$(".term-tab", tabs);
+
+        const activate = (tab) => {
+            tabButtons.forEach((button) => {
+                const active = button === tab;
+                button.classList.toggle("is-active", active);
+                button.setAttribute("aria-selected", String(active));
+                button.tabIndex = active ? 0 : -1;
+            });
+
+            panes.forEach((pane) => {
+                pane.classList.toggle("is-active", pane.dataset.pane === tab.dataset.term);
+            });
+        };
+
+        tabs.addEventListener("click", (event) => {
+            const tab = event.target.closest(".term-tab");
+            if (tab) {
+                activate(tab);
+            }
+        });
+
+        tabs.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+
+            const index = tabButtons.indexOf(document.activeElement);
+            if (index === -1) return;
+
+            event.preventDefault();
+            const nextIndex = event.key === "ArrowRight"
+                ? (index + 1) % tabButtons.length
+                : (index - 1 + tabButtons.length) % tabButtons.length;
+
+            tabButtons[nextIndex].focus();
+            activate(tabButtons[nextIndex]);
+        });
+    });
+
+
+    const toast = $("#toast");
+    let toastTimer = 0;
+
+    const showToast = (message) => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add("show");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => {
+            toast.classList.remove("show");
+        }, 1800);
+    };
+
+    const cleanCommands = (element) => element.innerText
+        .split("\n")
+        .map((line) => line.replace(/^\s*\$\s?/, "").trimEnd())
+        .join("\n")
+        .trim();
+
+    const fallbackCopy = (text) => {
+        const area = document.createElement("textarea");
+        area.value = text;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.top = "-1000px";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+
+        let copied = false;
+        try {
+            copied = document.execCommand("copy");
+        } catch {
+            copied = false;
+        }
+
+        document.body.removeChild(area);
+        return copied;
+    };
+
+    const copyText = async (text) => {
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch {
+            }
+        }
+        return fallbackCopy(text);
+    };
+
+    const flashButton = (button, label) => {
+        if (!button) return;
+        if (!button.dataset.label) {
+            button.dataset.label = button.textContent;
+        }
+        button.textContent = label;
+        window.setTimeout(() => {
+            button.textContent = button.dataset.label;
+        }, 1400);
+    };
+
+    $$("[data-copy-target]").forEach((button) => {
+        button.addEventListener("click", async () => {
+            const target = document.querySelector(button.dataset.copyTarget);
+            if (!target) return;
+
+            const copied = await copyText(cleanCommands(target));
+            const label = button.dataset.copyLabel || "Install commands copied";
+            flashButton(button, copied ? "Copied" : "Copy failed");
+            showToast(copied ? label : "Copy failed, select the text manually");
+        });
+    });
+
+    $$("[data-copy-term]").forEach((button) => {
+        button.addEventListener("click", async () => {
+            const term = button.closest(".term");
+            const pane = term ? $(".term-pane.is-active", term) : null;
+            if (!pane) return;
+
+            const copied = await copyText(cleanCommands(pane));
+            flashButton(button, copied ? "Copied" : "Copy failed");
+            showToast(copied ? "Terminal commands copied" : "Copy failed, select the text manually");
+        });
+    });
+
+    const revealItems = $$(".reveal");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if ("IntersectionObserver" in window && !reduceMotion) {
+        const reveal = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+            });
+        }, {
+            rootMargin: "0px 0px -8% 0px",
+            threshold: 0.08
+        });
+
+        revealItems.forEach((item) => reveal.observe(item));
+    } else {
+        revealItems.forEach((item) => item.classList.add("is-visible"));
+    }
+})();
+
+
+
+// Screenshot lightbox
+(() => {
+    "use strict";
+
+    const links = document.querySelectorAll(".shot-link");
+    if (!links.length) return;
+
+    let overlay = null;
+    let onKey = null;
+
+    const close = () => {
+        if (!overlay) return;
+        overlay.remove();
+        overlay = null;
+        document.body.style.overflow = "";
+        if (onKey) {
+            document.removeEventListener("keydown", onKey);
+            onKey = null;
+        }
+    };
+
+    const open = (src, alt) => {
+        close();
+
+        overlay = document.createElement("div");
+        overlay.className = "shot-lightbox";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-label", alt || "Screenshot preview");
+
+        const image = document.createElement("img");
+        image.src = src;
+        image.alt = alt || "";
+        overlay.appendChild(image);
+
+        overlay.addEventListener("click", (event) => {
+            if (event.target === overlay) close();
+        });
+
+        onKey = (event) => {
+            if (event.key === "Escape") close();
+        };
+        document.addEventListener("keydown", onKey);
+
+        document.body.appendChild(overlay);
+        document.body.style.overflow = "hidden";
+    };
+
+    links.forEach((link) => {
+        link.addEventListener("click", (event) => {
+            const image = link.querySelector("img");
+            if (!image) return;
+            event.preventDefault();
+            open(image.src, image.alt);
+        });
+    });
+})();
+
+</script>
+</body>
+</html>
