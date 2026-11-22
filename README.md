@@ -15,7 +15,7 @@
     <img alt="Network: local only" src="https://img.shields.io/badge/network-local%20only-ff5d5d?style=flat-square">
     <a href="#download-and-install"><img alt="Download: Linux x86-64" src="https://img.shields.io/badge/download-Linux%20x86--64-50ecb3?style=flat-square"></a>
   </p>
-  <p><a href="index.html">Project website</a> &middot; <a href="downloads/extensya">Direct download</a></p>
+  <p><a href="https://0xbitx.github.io/Extensya/">Project website</a> &middot; <a href="downloads/extensya">Direct download</a></p>
 </div>
 
 > [!WARNING]
